@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chathura's OS</title>
+    
+    <style>
+        /* --- CSS Variables for Theming --- */
+        :root {
+            --taskbar-bg-dark: rgba(0, 0, 0, 0.4);
+            --taskbar-bg-light: rgba(255, 255, 255, 0.7);
+            --window-bg: #f0f0f0;
+            --title-bar: #0078d7;
+            --text-color: #222;
+            --desktop-text-color: #fff;
+            --taskbar-height: 40px;
+        }
+
+        body[data-theme='light'] {
+            --desktop-text-color: #222;
+        }
+
+        /* --- NEW Animated Gradient Background --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            color: var(--text-color);
+            overflow: hidden;
+            user-select: none;
+            background: linear-gradient(45deg, #1d2b38, #3a506b, #1c7293, #0a9396);
+            background-size: 400% 400%;
+            animation: gradientAnimation 20s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body[data-theme='light'] {
+            background: #d4d8e1;
+            animation: none;
+        }
+
+        /* --- Startup Screen --- */
+        #startup-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #1a1a1a; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; transition: opacity 0.5s ease; }
+        #startup-logo { font-size: 48px; margin-bottom: 20px; }
+        #loading-bar { width: 200px; height: 4px; background: #555; overflow: hidden; }
+        #loading-progress { width: 0; height: 100%; background: var(--title-bar); animation: load 2s ease-out forwards; }
+        @keyframes load { from { width: 0; } to { width: 100%; } }
+
+        /* --- Desktop & Icons --- */
+        #desktop { position: relative; padding: 15px; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start; gap: 15px; height: calc(100vh - var(--taskbar-height)); }
+        .desktop-icon { display: flex; flex-direction: column; align-items: center; width: 85px; text-align: center; cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid transparent; }
+        .desktop-icon.selected { background-color: rgba(0, 120, 215, 0.4); border-color: rgba(0, 120, 215, 0.8); }
+        .desktop-icon .icon-image { width: 48px; height: 48px; }
+        .desktop-icon .icon-label { margin-top: 5px; font-size: 13px; color: var(--desktop-text-color); text-shadow: 1px 1px 3px rgba(0,0,0,0.7); }
+        body[data-theme='light'] .desktop-icon .icon-label { text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+
+        /* --- Taskbar --- */
+        #taskbar { position: absolute; bottom: 0; left: 0; width: 100%; height: var(--taskbar-height); background-color: var(--taskbar-bg-dark); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; padding: 0 10px; box-sizing: border-box; gap: 10px; transition: background-color 0.3s ease; }
+        body[data-theme='light'] #taskbar { background-color: var(--taskbar-bg-light); border-top-color: rgba(0,0,0,0.2); }
+        /* --- SMALLER START BUTTON --- */
+        #start-button { width: 28px; height: 28px; cursor: pointer; fill: var(--desktop-text-color); }
+        #search-bar { width: 200px; padding: 5px 10px; border: 1px solid #aaa; border-radius: 3px; background-color: #fff; }
+        #taskbar-apps { display: flex; height: 100%; align-items: center; gap: 5px; }
+        .taskbar-app { height: 30px; padding: 0 10px; background: rgba(255,255,255,0.1); border-bottom: 3px solid var(--title-bar); display: flex; align-items: center; font-size: 14px; cursor: pointer; color: var(--desktop-text-color); border-radius: 3px 3px 0 0; }
+        #clock { margin-left: auto; font-weight: bold; padding: 0 10px; color: var(--desktop-text-color); }
+
+        /* --- Context Menu & Windows --- */
+        #context-menu { display: none; position: absolute; background: var(--taskbar-bg-light); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.2); border-radius: 5px; padding: 5px 0; z-index: 5000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .context-menu-item { padding: 8px 20px; cursor: pointer; font-size: 14px; color: var(--text-color); }
+        .context-menu-item:hover { background-color: var(--title-bar); color: white; }
+        .window { display: none; position: absolute; width: 650px; height: 450px; min-width: 320px; min-height: 250px; background-color: var(--window-bg); border: 1px solid var(--border-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.3); resize: both; overflow: hidden; display: flex; flex-direction: column; border-radius: 5px; animation: scaleIn 0.2s ease-out; }
+        .window.closing { animation: scaleOut 0.2s ease-in forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+        .title-bar { background-color: var(--title-bar); color: white; padding: 5px 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; cursor: move; flex-shrink: 0; }
+        .title-bar-controls { display: flex; gap: 5px; }
+        .window-button { background-color: transparent; color: white; width: 22px; height: 22px; text-align: center; line-height: 22px; cursor: pointer; font-weight: bold; font-size: 16px; border-radius: 3px; }
+        .window-button:hover { background-color: rgba(255,255,255,0.2); }
+        .close-button:hover { background-color: #e81123; }
+        .window-content { padding: 15px; flex-grow: 1; overflow-y: auto; background-color: #fff; }
+        .photo-gallery { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 15px; 
+            align-items: start; 
+            position: relative; 
+        }
+        .photo-gallery img { 
+            width: 100%; 
+            height: auto; 
+            object-fit: contain; 
+            border-radius: 3px; 
+            background: #f5f5f5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: opacity 0.3s ease;
+        }
+        .photo-gallery img:not(.lazy-img):not(.loading) {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        .photo-gallery img.loading {
+            opacity: 0.5;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .photo-gallery .vertical-photo { 
+            grid-row: span 2; 
+            max-height: 400px;
+        }
+        .window.maximized { top: 0 !important; left: 0 !important; width: 100vw !important; height: calc(100vh - var(--taskbar-height)) !important; resize: none; border-radius: 0; }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div id="startup-screen">
+        <div id="startup-logo">◈</div>
+        <p>Chathura's OS is starting...</p>
+        <div id="loading-bar"><div id="loading-progress"></div></div>
+    </div>
+
+    <main id="desktop"></main>
+    <div id="taskbar">
+        <svg id="start-button" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="45" height="45" x="0" y="0"/><rect width="45" height="45" x="55" y="0"/><rect width="45" height="45" x="0" y="55"/><rect width="45" height="45" x="55" y="55"/></svg>
+        <input type="text" id="search-bar" placeholder="Search desktop...">
+        <div id="taskbar-apps"></div>
+        <div id="clock"></div>
+    </div>
+    <div id="context-menu">
+        <div class="context-menu-item" id="theme-toggle">Change Theme</div>
+        <div class="context-menu-item" id="refresh-page">Refresh</div>
+    </div>
+    <div id="window-container"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DATA & CONFIG ---
+        const desktopData = [
+            // --- FOLDERS FROM P1-P6 ---
+            { id: 'folder1-window', label: 'Field Visits', icon: 'folder', content: { type: 'gallery', items: ['p1/1.JPG', 'p1/2.JPG', 'p1/3.JPG', 'p1/4.JPG', 'p1/5.JPG', 'p1/2023_08_25_13_08_IMG_8941.JPG'] } },
+            { id: 'folder2-window', label: 'First Filtration Unit Design  ', icon: 'folder', content: { type: 'gallery', items: ['p2/1.JPG', 'p2/2.JPG', 'p2/3.JPG', 'p2/4.JPG', 'p2/5.JPG', 'p2/6.JPG', 'p2/7.JPG'] } },
+            { id: 'folder3-window', label: 'Commiunity projects', icon: 'folder', content: { type: 'gallery', items: ['p3/1.JPG', 'p3/2.JPG', 'p3/3.JPG', 'p3/4.JPG', 'p3/5.JPG', 'p3/6.JPG'] } },
+            { id: 'folder4-window', label: 'Last days of Laboratory', icon: 'folder', content: { type: 'gallery', items: ['p4/1.JPG', 'p4/2.JPG', 'p4/3.JPG'] } },
+            { id: 'folder5-window', label: 'Some of my photoshop Works', icon: 'folder', content: { type: 'gallery', items: ['p5/1.jpg', 'p5/2.jpg', 'p5/3.jpg', 'p5/4.jpg', 'p5/5.jpg', 'p5/6.jpg', 'p5/7.jpg', 'p5/8.jpg', 'p5/9.jpg', 'p5/10.jpg', 'p5/11.jpg', 'p5/12.jpg', 'p5/13.jpg', 'p5/14.jpg'] } },
+            { id: 'folder6-window', label: 'My Digital Artworks', icon: 'folder', content: { type: 'gallery', items: ['p6/1.jpg', 'p6/2.jpg', 'p6/3.jpg', 'p6/4.jpg', 'p6/5.jpg', 'p6/6.jpg', 'p6/7.jpg'] } },
+            { id: 'about-window', label: 'About Me', icon: 'file', content: { type: 'text', html: '<h2>Hello!</h2><p>Welcome to my digital space. I am a photo shy person, This collection of some old other projects</p><p>Feel free to explore the folders to see the work in action.</p>' } } ]
+        const icons = {
+            folder: `<svg class="icon-image" viewBox="0 0 24 24" fill="#ffca28" xmlns="http://www.w3.org/2000/svg"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+            file: `<svg class="icon-image" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+        };
+        
+        // --- GLOBAL VARIABLES ---
+        const desktop = document.getElementById('desktop');
+        const windowContainer = document.getElementById('window-container');
+        let highestZIndex = 10;
+        
+        // --- MAIN INITIALIZATION FUNCTION ---
+        function initializeDesktop() {
+            // 1. Handle Startup Screen
+            setTimeout(() => {
+                const startupScreen = document.getElementById('startup-screen');
+                startupScreen.style.opacity = '0';
+                setTimeout(() => startupScreen.style.display = 'none', 500);
+            }, 2500);
+
+            // 2. Populate Desktop Icons AND Windows from data
+            desktopData.forEach(item => {
+                const iconEl = document.createElement('div');
+                iconEl.className = 'desktop-icon';
+                if (item.className) iconEl.classList.add(item.className);
+                iconEl.innerHTML = `${icons[item.icon]}<span class="icon-label">${item.label}</span>`;
+                iconEl.dataset.windowId = item.id;
+                desktop.appendChild(iconEl);
+
+                if (item.content) {
+                    const windowEl = document.createElement('div');
+                    windowEl.className = 'window';
+                    windowEl.id = item.id;
+                    windowEl.style.top = `${Math.random() * 100 + 50}px`;
+                    windowEl.style.left = `${Math.random() * 200 + 150}px`;
+                    let contentHTML = '';
+                    if (item.content.type === 'gallery') {
+                        const initialLoadCount = Math.min(8, item.content.items.length); // Load first 8 images initially
+                        const remainingCount = item.content.items.length - initialLoadCount;
+                        
+                        const initialImages = item.content.items.slice(0, initialLoadCount).map(img => {
+                            const srcPath = img.includes('/') ? img : `images/${img}`;
+                            return `<img src="${srcPath}" class="${img.startsWith('v') ? 'vertical-photo' : ''}" loading="lazy" onload="this.classList.remove('loading')" onerror="this.style.display='none'">`;
+                        }).join('');
+                        
+                        const lazyImages = item.content.items.slice(initialLoadCount).map(img => {
+                            const srcPath = img.includes('/') ? img : `images/${img}`;
+                            return `<img data-src="${srcPath}" class="${img.startsWith('v') ? 'vertical-photo lazy-img' : 'lazy-img'}" style="opacity: 0;" onerror="this.style.display='none'">`;
+                        }).join('');
+                        
+                        const loadMoreButton = remainingCount > 0 ? `<div style="grid-column: 1 / -1; text-align: center; margin-top: 20px;"><button id="load-more-${item.id}" class="load-more-btn" style="padding: 10px 20px; background: #0078d7; color: white; border: none; border-radius: 5px; cursor: pointer;">Load ${remainingCount} more images</button></div>` : '';
+                        
+                        contentHTML = `<div class="photo-gallery" id="gallery-${item.id}">${initialImages}${lazyImages}${loadMoreButton}</div>`;
+                    } else if (item.content.type === 'text') {
+                        contentHTML = `<div style="font-family: monospace; line-height: 1.6;">${item.content.html}</div>`;
+                    }
+                    windowEl.innerHTML = `<div class="title-bar"><span class="title-bar-text">${item.label}</span><div class="title-bar-controls"><div class="window-button minimize-button">_</div><div class="window-button maximize-button">□</div><div class="window-button close-button">X</div></div></div><div class="window-content">${contentHTML}</div>`;
+                    windowContainer.appendChild(windowEl);
+                    makeWindowFunctional(windowEl);
+                }
+            });
+
+            // 3. Attach event listeners to newly created icons
+            document.querySelectorAll('.desktop-icon').forEach(icon => {
+                icon.addEventListener('click', (e) => {
+                    document.querySelectorAll('.desktop-icon.selected').forEach(sel => sel.classList.remove('selected'));
+                    icon.classList.add('selected');
+                    e.stopPropagation();
+                });
+                if (icon.dataset.windowId && document.getElementById(icon.dataset.windowId)) {
+                    icon.addEventListener('dblclick', () => openWindow(document.getElementById(icon.dataset.windowId)));
+                }
+            });
+
+            // 4. Setup lazy loading and load more functionality
+            setupLazyLoading();
+        }
+
+        // --- HELPER & EVENT FUNCTIONS (Unchanged from previous version) ---
+        function openWindow(windowEl) { windowEl.style.display = 'flex'; bringToFront(windowEl); updateTaskbar('add', windowEl); }
+        function bringToFront(el) { highestZIndex++; el.style.zIndex = highestZIndex; }
+        
+        function makeWindowFunctional(windowEl) {
+            makeDraggable(windowEl);
+            windowEl.addEventListener('mousedown', () => bringToFront(windowEl));
+            windowEl.querySelector('.close-button').addEventListener('click', () => { windowEl.classList.add('closing'); setTimeout(() => { windowEl.style.display = 'none'; windowEl.classList.remove('closing'); updateTaskbar('remove', windowEl); }, 200); });
+            windowEl.querySelector('.minimize-button').addEventListener('click', () => { windowEl.style.display = 'none'; });
+            windowEl.querySelector('.maximize-button').addEventListener('click', () => { windowEl.classList.toggle('maximized'); });
+        }
+
+        desktop.addEventListener('click', () => document.querySelectorAll('.desktop-icon.selected').forEach(sel => sel.classList.remove('selected')));
+        const clock = document.getElementById('clock'); function updateClock() { clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } setInterval(updateClock, 1000); updateClock();
+        const contextMenu = document.getElementById('context-menu'); document.addEventListener('contextmenu', e => { e.preventDefault(); contextMenu.style.top = `${e.clientY}px`; contextMenu.style.left = `${e.clientX}px`; contextMenu.style.display = 'block'; }); document.addEventListener('click', () => contextMenu.style.display = 'none'); document.getElementById('refresh-page').addEventListener('click', () => location.reload()); document.getElementById('theme-toggle').addEventListener('click', () => { const body = document.body; const currentTheme = body.dataset.theme; body.dataset.theme = currentTheme === 'dark' ? 'light' : 'dark'; });
+
+        function updateTaskbar(action, windowEl) { const taskbarAppsContainer = document.getElementById('taskbar-apps'); const appId = `taskbar-app-${windowEl.id}`; const existingApp = document.getElementById(appId); if (action === 'add' && !existingApp) { const app = document.createElement('div'); app.id = appId; app.className = 'taskbar-app'; app.textContent = windowEl.querySelector('.title-bar-text').textContent; app.onclick = () => { windowEl.style.display = 'flex'; bringToFront(windowEl); }; taskbarAppsContainer.appendChild(app); } else if (action === 'remove' && existingApp) { existingApp.remove(); } }
+        function makeDraggable(windowEl) { const titleBar = windowEl.querySelector('.title-bar'); let isDragging = false, offsetX, offsetY; const startDrag = (e) => { if (windowEl.classList.contains('maximized')) return; isDragging = true; const event = e.touches ? e.touches[0] : e; offsetX = event.clientX - windowEl.offsetLeft; offsetY = event.clientY - windowEl.offsetTop; document.addEventListener('mousemove', onDrag); document.addEventListener('touchmove', onDrag); document.addEventListener('mouseup', stopDrag); document.addEventListener('touchend', stopDrag); }; const onDrag = (e) => { if (!isDragging) return; e.preventDefault(); const event = e.touches ? e.touches[0] : e; windowEl.style.left = `${event.clientX - offsetX}px`; windowEl.style.top = `${event.clientY - offsetY}px`; }; const stopDrag = () => { isDragging = false; document.removeEventListener('mousemove', onDrag); document.removeEventListener('touchmove', onDrag); document.removeEventListener('mouseup', stopDrag); document.removeEventListener('touchend', stopDrag); }; titleBar.addEventListener('mousedown', startDrag); titleBar.addEventListener('touchstart', startDrag); }
+        document.getElementById('search-bar').addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); document.querySelectorAll('.desktop-icon').forEach(icon => { const label = icon.querySelector('.icon-label').textContent.toLowerCase(); icon.style.display = label.includes(searchTerm) ? 'flex' : 'none'; }); });
+
+        // --- LAZY LOADING AND LOAD MORE FUNCTIONS ---
+        function setupLazyLoading() {
+            // Intersection Observer for lazy loading
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.classList.add('loading');
+                        img.classList.remove('lazy-img');
+                        observer.unobserve(img);
+                    }
+                });
+            });
+
+            // Load more button functionality
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('load-more-btn')) {
+                    const buttonId = e.target.id;
+                    const windowId = buttonId.replace('load-more-', '');
+                    const gallery = document.getElementById(`gallery-${windowId}`);
+                    const lazyImages = gallery.querySelectorAll('.lazy-img');
+                    
+                    lazyImages.forEach((img, index) => {
+                        if (index < 8) { // Load 8 more at a time
+                            img.src = img.dataset.src;
+                            img.style.opacity = '1';
+                            img.classList.add('loading');
+                            img.classList.remove('lazy-img');
+                        }
+                    });
+
+                    // Remove the button if all images are loaded
+                    const remainingLazyImages = gallery.querySelectorAll('.lazy-img');
+                    if (remainingLazyImages.length === 0) {
+                        e.target.style.display = 'none';
+                    } else {
+                        e.target.textContent = `Load ${remainingLazyImages.length} more images`;
+                    }
+                }
+            });
+
+            // Observe images for lazy loading
+            setTimeout(() => {
+                document.querySelectorAll('.lazy-img').forEach(img => {
+                    imageObserver.observe(img);
+                });
+            }, 100);
+        }
+
+        // --- RUN THE APP ---
+        initializeDesktop();
+    });
+    </script>
+</body>
+</html>
